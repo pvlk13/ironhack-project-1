@@ -1,0 +1,9 @@
+region = "us-west-2"
+instance_type = "t2.micro"
+ami_id = "ami-06d455b8b50b0de4d"
+allowed_ssh_cidrs = [ "0.0.0.0/0" ]
+az_count = 1
+private_subnet_cidrs = [ "30.0.101.0/24","30.0.102.0/24" ]
+public_subnet_cidr = "30.0.1.0/24"
+vpc_cidr = "30.0.0.0/16"
+key = "vijaya-key-cloudwatch"
