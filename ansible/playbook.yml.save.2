@@ -1,0 +1,137 @@
+--- 
+ - name: Ensure Docker is installed
+   hosts: localhost
+   become: yes
+   connection: local
+   tasks:
+     - name: To install Docker
+       package:
+          name: docker
+          state: present
+     - name: Ensure Docker is running
+       service:
+         name: docker
+         state: started
+         enabled: yes
+     - name: Pull an image
+       docker_image:
+          name: vijayakurra/poll-app:latest 
+          source: pull
+     - name: Create network
+       docker_network:
+           name: frontend_network
+           state: present
+     - name: Connect existing frontend to network
+       docker_network:
+           name: frontend_network
+           connected:
+              - client
+           state: present
+     - name: Run Container
+       docker_container:
+           name: client
+           image: vijayakurra/poll-app:latest
+           network: frontend_network
+           ports: 
+             - "80:80"
+           state: started
+ - name: install docker and run container in backend
+   hosts: backend
+   become: yes
+   tasks:
+     - name: Install Docker
+       package:
+         name: docker
+         state: present
+     - name: Ensure Docker is running
+       service:
+           name: docker
+           state: started
+           enabled: yes
+     - name: Pull the image from docker
+       docker_image:
+          name: vijayakurra/worker-app:latest
+          source: pull
+     - name: Create network
+       docker_network:
+           name: backend_network
+           name: db_network
+           state: present
+     - name: Connect existing backend  to network
+       docker_network:
+         - name:
+               backend_network
+               db_network
+           connected:
+              - worker-container
+           state: present
+     - name: Run the container
+       docker_container:
+         name: worker-container
+         image: vijayakurra/worker-app:latest
+         ports:
+          - "5432:80"
+         state: started
+         restart_policy: always
+       network:
+          - name:
+              backend_network
+              db_network  
+         platform: linux/amd64 
+     - name: Pull the Redis image
+       docker_image: 
+           name: redis:alpine
+           source: pull
+     - name: Run the Redis container
+       docker_container:
+           name: redis-container
+           image: redis:alpine
+           network: 
+              name: backend_network
+           ports:
+            - "6379:6379"
+           state: started
+           restart_policy: always
+           platform: linux/amd64
+ - name: install docker and run container in backend
+   hosts: db
+   become: yes
+   tasks:
+     - name: Install Docker
+       package:
+         - name: docker
+           state: present
+     - name: Ensure Docker is running
+       service:
+           name: docker
+           state: started
+           enabled: yes
+     - name: Pull PostgreSQL image
+       docker_image: 
+          name: postgres:15-alpine
+          source: pull
+     - name: Create network 
+       docker_network:
+           name: db_network
+           state: present
+     - name: Connect existing db to network
+       docker_network:
+           name: db_network
+           connected:
+              - client
+           state: present
+     - name: Run the postgreSQL 
+       docker_container:
+           name: postgreSQL_container
+           image: postgres:15-alpine
+           env:
+             POSTGRES_USER: "postgres"
+             POSTGRES_PASSWORD: "postgres"
+           volumes:
+              - db-data:/var/lib/postgresql/data
+           networks:
+              name: db_network
+           state: started
+           restart_policy: always
+           platform: linux/amd64
+         

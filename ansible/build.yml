@@ -1,0 +1,55 @@
+---
+- name: Build and Push Docker image (AMD64)
+  hosts: localhost
+  become: yes
+  vars:
+    dockerhub_username: "vijayakurra"
+    dockerhub_password: "vijaya@13091986"
+    app_name: "result-app"
+    app_path: "/home/ec2-user/ironhack-project/result"
+    build_platform: "linux/amd64"
+    builder_name: "multiarch-builder"
+
+  tasks:
+    - name: Ensure Docker is installed
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Login to Docker Hub
+      docker_login:
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+
+    - name: Remove old buildx builder if it exists
+      command: docker buildx rm {{ builder_name }}
+      ignore_errors: yes
+
+    - name: Create and use a new buildx builder
+      command: docker buildx create --name {{ builder_name }} --use
+
+    - name: Bootstrap the builder
+      command: docker buildx inspect {{ builder_name }} --bootstrap
+
+    - name: Build and push image for amd64 platform (no cache)
+      command: >
+        docker buildx build
+        --platform {{ build_platform }}
+        -t {{ dockerhub_username }}/{{ app_name }}:latest
+        {{ app_path }}
+        --push
+        --no-cache
+
+    - name: Verify image architecture on Docker Hub
+      command: docker buildx imagetools inspect {{ dockerhub_username }}/{{ app_name }}:latest
+      register: image_info
+
+    - name: Display build result
+      debug:
+        msg: "{{ image_info.stdout_lines }}"

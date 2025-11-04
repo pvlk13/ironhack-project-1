@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Go to terraform folder
+cd /home/ec2-user/ironhack-project/terraform || exit
+
+# Extract values
+DB_IP=$(jq -r '.db_private_ip.value' tf_output.json)
+BACKEND_IP=$(jq -r '.backenD_private_ip.value' tf_output.json)
+FRONTEND_IP=$(jq -r '.frontend_public_ip.value' tf_output.json)
+
+# Go back to ansible folder (optional)
+cd /home/ec2-user/ironhack-project/ansible || exit
+
+# Create inventory.ini
+cat > inventory.ini <<EOL
+[db]
+$DB_IP
+
+[worker]
+$WORKER_IP
+
+[redis]
+$REDIS_IP
+EOL
+
+echo "inventory.ini generated successfully."

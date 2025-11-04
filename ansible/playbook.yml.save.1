@@ -1,0 +1,97 @@
+--- 
+ - name: Ensure Docker is installed
+   hosts: localhost
+   become: yes
+   connection: local
+   tasks:
+     - name: To install Docker
+       package:
+          name: docker
+          state: present
+     - name: Ensure Docker is running
+       service:
+         name: docker
+         state: started
+         enabled: yes
+     - name: Pull an image
+       docker_image:
+          name: vijayakurra/poll-app:latest 
+          source: pull
+     - name: Run Container
+       docker_container:
+           name: client
+           image: vijayakurra/poll-app:latest
+           ports: 
+             - "80:80"
+           state: started
+ - name: install docker and run container in backend
+   hosts: backend
+   become: yes
+   tasks:
+     - name: Install Docker
+       package:
+         name: docker
+         state: present
+     - name: Ensure Docker is running
+       service:
+           name: docker
+           state: started
+           enabled: yes
+     - name: Pull the image from docker
+       docker_image:
+          name: vijayakurra/worker-app:latest
+          source: pull
+     - name: Run the container
+       docker_container:
+         name: worker-container
+         image: vijayakurra/worker-app:latest
+         ports:
+          - "5432:80"
+         state: started
+         restart_policy: always
+         platform: linux/amd64 
+     - name: Pull the Redis image
+       docker_image: 
+           name: redis:alpine
+           source: pull
+     - name: Run the Redis container
+       docker_container:
+           name: redis-container
+           image: redis:alpine
+           ports:
+            - "6379:6379"
+           state: started
+           restart_policy: always
+           platform: linux/amd64
+ - name: install docker and run container in Database
+   hosts: db
+   become: yes
+   tasks:
+     - name: Install Docker
+       package:
+         - name: docker
+           state: present
+     - name: Ensure Docker is running
+       service:
+           name: docker
+           state: started
+           enabled: yes
+     - name: Pull PostgreSQL image
+       docker_image: 
+          name: postgres:15-alpine
+          source: pull
+     - name: check if myvolume exists
+       command: docker volume inspect myvolume
+       register: my_volume_exists
+       failed_when: false
+     - name:create myvolume
+       command: docker volume create --name myvolume
+       when: myvolume_exists|failed
+     - name: Run the postgreSQL 
+       docker_container:
+           name: postgreSQL_container
+           image: postgres:15-alpine
+           state: started
+           restart_policy: always
+           platform: linux/amd64
+         
