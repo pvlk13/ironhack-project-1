@@ -2,9 +2,9 @@
 - name: Build and Push Docker image (AMD64)
   hosts: localhost
   become: yes
+  vars_files:
+    - vault.yml
   vars:
-    dockerhub_username: "vijayakurra"
-    dockerhub_password: "vijaya@13091986"
     app_name: "result-app"
     app_path: "/home/ec2-user/ironhack-project/result"
     build_platform: "linux/amd64"

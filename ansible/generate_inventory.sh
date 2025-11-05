@@ -47,3 +47,15 @@ EOL
 
 
 echo "✅ Inventory file generated successfully:"
+cat > inventory_check.ini <<EOL
+[frontend]
+frontend-instance ansible_host=${FRONTEND_IP} ansible_user=ec2-user ansible_ssh_private_key_file=/home/ec2-user/.ssh/vijaya-key-cloudwatch.pem
+
+[backend]
+backend-instance ansible_host=${BACKEND_IP} ansible_user=ec2-user ansible_ssh_private_key_file=/home/ec2-user/.ssh/vijaya-key-cloudwatch.pem
+
+[db]
+db-instance ansible_host=${DB_IP} ansible_user=ec2-user ansible_ssh_private_key_file=/home/ec2-user/.ssh/vijaya-key-cloudwatch.pem
+EOL
+
+echo "✅ Inventory file generated successfully:"

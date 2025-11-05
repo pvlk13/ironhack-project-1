@@ -37,7 +37,7 @@
         ports:
           - "80:80"
         env:
-          REDIS_HOST: "30.0.101.196"   # Backend Redis IP
+          REDIS_HOST: "{{ hostvars['backend-instance'].ansible_host }}"   # Backend Redis IP
           REDIS_PORT: "6379"
         state: started
         restart_policy: always
@@ -56,10 +56,10 @@
         ports:
           - "5001:80"
         env:
-          DB_HOST: "30.0.102.50"       # PostgreSQL DB host
+          DB_HOST: "{{ hostvars['db-instance'].ansible_host }}"       # PostgreSQL DB host
           DB_USER: "postgres"
           DB_PASSWORD: "postgres"
-          PG_HOST: "30.0.102.50"
+          PG_HOST: "{{ hostvars['db-instance'].ansible_host }}"
           PG_PORT: "5432"
           PG_USER: "postgres"
           PG_PASSWORD: "postgres"
@@ -115,7 +115,7 @@
         env:
           REDIS_HOST: "redis-container"  # container name works since both share backend_network
           REDIS_PORT: "6379"
-          DB_HOST: "30.0.102.50"       # PostgreSQL DB host
+          DB_HOST: "{{ hostvars['db-instance'].ansible_host }}"       # PostgreSQL DB host
           DB_USER: "postgres"
           DB_PASSWORD: "postgres"
         state: started
