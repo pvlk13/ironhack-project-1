@@ -1,0 +1,66 @@
+---
+# =======================
+# BACKEND PLAYBOOK
+# =======================
+- name: Setup backend (worker + Redis)
+  hosts: backend
+  become: yes
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull worker image
+      docker_image:
+        name: vijayakurra/worker-app:latest
+        source: pull
+
+    - name: Pull Redis image
+      docker_image:
+        name: redis:alpine
+        source: pull
+
+    - name: Create backend network
+      docker_network:
+        name: backend_network
+        state: present
+
+    - name: Create DB network
+      docker_network:
+        name: db_network
+        state: present
+
+    - name: Run worker container
+      docker_container:
+        name: worker-container
+        image: vijayakurra/worker-app:latest
+        networks:
+          - name: backend_network
+        env:
+          REDIS_HOST: "redis-container"  # container name works since both share backend_network
+          REDIS_PORT: "6379"
+          DB_HOST:  "{{ db_ip }}"       # PostgreSQL DB host
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+        state: started
+        restart_policy: always
+        platform: linux/amd64
+
+    - name: Run Redis container
+      docker_container:
+        name: redis-container
+        image: redis:alpine
+        networks:
+          - name: backend_network
+        ports:
+          - "6379:6379"
+        state: started
+        restart_policy: always
+        platform: linux/amd64

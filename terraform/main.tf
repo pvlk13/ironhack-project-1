@@ -25,7 +25,7 @@ resource "aws_subnet" "vijaya-public-subnet" {
     vpc_id = aws_vpc.vijaya-vpc.id
     cidr_block = var.public_subnet_cidr
     map_public_ip_on_launch = true
-    availability_zone = "${var.region}a"
+    availability_zone = "${var.region}b"
     tags = {
       Name = "${var.project_name}-public-subnet"
     }
@@ -44,7 +44,7 @@ resource "aws_subnet" "vijaya-private-subnet" {
     count=length(var.private_subnet_cidrs)
     vpc_id = aws_vpc.vijaya-vpc.id
     cidr_block = var.private_subnet_cidrs[count.index]
-    availability_zone = "${var.region}a"
+    availability_zone = "${var.region}b"
     tags = {
         Name = "${var.project_name}-private-subnet-${count.index+1}"
     } 
@@ -94,12 +94,35 @@ resource "aws_security_group" "vijaya-frontend-sg" {
         to_port = 22
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
+        description = "for ssh"
+    }
+    ingress{
+      from_port = 5001
+      to_port = 5001
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "for accessing the frontend thru 5001 port"
+    }
+    ingress{
+      from_port = 443
+      to_port = 443
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "for HTTPS requests"
+    }
+    ingress{
+      from_port = 80
+      to_port = 80
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "for HTTP requests"
     }
     egress{
       from_port = 0
       to_port = 0
       protocol = "-1"
       cidr_blocks = ["0.0.0.0/0"]
+      description = "for outbound traffic"
     }
 
     tags = {
@@ -117,18 +140,21 @@ resource "aws_security_group" "vijaya-backend-sg" {
         to_port = 22
         protocol = "tcp"
         security_groups = [aws_security_group.vijaya-frontend-sg.id]
+        description = "for sshing "
     }
     ingress {
         from_port = 6379
         to_port = 6379
         protocol = "tcp"
         security_groups = [aws_security_group.vijaya-frontend-sg.id]
+        description = "to accessing the redis thru frontend"
     }
     egress {
         from_port   = 0
         to_port     = 0
         protocol    = "-1"
-       cidr_blocks = ["0.0.0.0/0"]
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "for outbound traffic"
 
     } 
 
@@ -147,18 +173,28 @@ resource "aws_security_group" "vijaya-db-sg" {
         to_port = 22
         protocol = "tcp"
         security_groups = [aws_security_group.vijaya-frontend-sg.id]
+        description = "sshing from bastion host"
     }
     ingress{
         from_port = 5432
         to_port = 5432
         protocol = "tcp"
         security_groups = [aws_security_group.vijaya-backend-sg.id]
+        description = "for worker to access postgres"
+    }
+    ingress{
+        from_port = 5432
+        to_port = 5432
+        protocol = "tcp"
+        security_groups = [aws_security_group.vijaya-frontend-sg.id]
+        description = "for the frontend to access postgres"
     }
     egress{
         from_port = 0
         to_port = 0
         protocol = "-1"
         cidr_blocks = ["0.0.0.0/0"]
+        description = "from postgres to outside"
     }
     tags = {
         Name = "${var.project_name}-db-sg"
@@ -172,7 +208,7 @@ resource "aws_instance" "vijaya-frontend" {
   key_name = var.key
   vpc_security_group_ids = [aws_security_group.vijaya-frontend-sg.id]
   tags = {
-    Name = "${var.project_name}-frontend"
+    Name = "${var.project_name}-frontend-b"
   }
 }
 #Create backend instance(worker+redis)
@@ -183,7 +219,7 @@ resource "aws_instance" "vijaya-backend" {
     key_name = var.key
     vpc_security_group_ids = [aws_security_group.vijaya-backend-sg.id]
     tags = {
-      Name = "${var.project_name}-backend"
+      Name = "${var.project_name}-backend-b"
     }
       
 }
@@ -195,6 +231,6 @@ resource "aws_instance" "vijaya-db"{
     key_name = var.key
     vpc_security_group_ids = [aws_security_group.vijaya-db-sg.id]
     tags = {
-      Name = "${var.project_name}-db"
+      Name = "${var.project_name}-db-b"
     }
 }

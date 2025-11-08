@@ -1,0 +1,45 @@
+---
+# =======================
+# DATABASE PLAYBOOK
+# =======================
+- name: Setup PostgreSQL container
+  hosts: db
+  become: yes
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull PostgreSQL image
+      docker_image:
+        name: postgres:15-alpine
+        source: pull
+
+    - name: Create DB network
+      docker_network:
+        name: db_network
+        state: present
+
+    - name: Run PostgreSQL container
+      docker_container:
+        name: postgresql_container
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: "postgres"
+          POSTGRES_PASSWORD: "postgres"
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        networks:
+          - name: db_network
+        ports:
+          - "5432:5432"
+        state: started
+        restart_policy: always
+        platform: linux/amd64

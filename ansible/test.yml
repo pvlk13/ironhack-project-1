@@ -1,0 +1,16 @@
+---
+# =======================
+# BACKEND PLAYBOOK
+# =======================
+- name: Testing Options
+  hosts: backend
+  become: yes
+
+  tasks:
+    - name: "Print dynamic ip"
+      shell: "echo {{ backend_ip }}"
+      register: ip_output
+
+    - debug:
+        msg: "{{ ip_output.stdout }}"
+    

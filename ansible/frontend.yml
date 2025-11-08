@@ -1,0 +1,69 @@
+---
+# =======================
+# FRONTEND PLAYBOOK
+# =======================
+- name: Setup frontend container
+  hosts: frontend
+  become: yes
+  connection: ssh
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull frontend image
+      docker_image:
+        name: vijayakurra/poll-app:latest
+        source: pull
+
+    - name: Create frontend network
+      docker_network:
+        name: frontend_network
+        state: present
+
+    - name: Run frontend (vote) container
+      docker_container:
+        name: vote
+        image: vijayakurra/poll-app:latest
+        networks:
+          - name: frontend_network
+        ports:
+          - "80:80"
+        env:
+          REDIS_HOST:  "{{ backend_ip }}" # Backend Redis IP
+          REDIS_PORT: "6379"
+        state: started
+        restart_policy: always
+
+    - name: Run frontend (result) container
+      docker_image:
+        name: vijayakurra/result-app:latest
+        source: pull
+
+    - name: Run result container
+      docker_container:
+        name: result
+        image: vijayakurra/result-app:latest
+        networks:
+          - name: frontend_network
+        ports:
+          - "5001:80"
+        env:
+          DB_HOST: "{{ db_ip }}"      # PostgreSQL DB host
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          PG_HOST: "{{ db_ip }}"
+          PG_PORT: "5432"
+          PG_USER: "postgres"
+          PG_PASSWORD: "postgres"
+          PG_DATABASE: "postgres"
+        state: started
+        restart_policy: always
+        recreate: yes

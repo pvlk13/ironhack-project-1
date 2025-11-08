@@ -1,0 +1,17 @@
+{
+  "backend_private_ip": {
+    "sensitive": false,
+    "type": "string",
+    "value": "30.0.120.27"
+  },
+  "db_private_ip": {
+    "sensitive": false,
+    "type": "string",
+    "value": "30.0.121.21"
+  },
+  "frontend_public_ip": {
+    "sensitive": false,
+    "type": "string",
+    "value": "54.186.86.201"
+  }
+}
