@@ -1,4 +1,187 @@
+<<<<<<< HEAD
 - import_playbook: frontend.yml
 - import_playbook: backend.yml
 - import_playbook: db.yml
 
+=======
+---
+# =======================
+# FRONTEND PLAYBOOK
+# =======================
+- name: Setup frontend container
+  hosts: localhost
+  become: yes
+  connection: local
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull frontend image
+      docker_image:
+        name: vijayakurra/poll-app:latest
+        source: pull
+
+    - name: Create frontend network
+      docker_network:
+        name: frontend_network
+        state: present
+
+    - name: Run frontend (vote) container
+      docker_container:
+        name: vote
+        image: vijayakurra/poll-app:latest
+        networks:
+          - name: frontend_network
+        ports:
+          - "80:80"
+        env:
+          REDIS_HOST: "{{ hostvars['backend-instance'].ansible_host }}"   # Backend Redis IP
+          REDIS_PORT: "6379"
+        state: started
+        restart_policy: always
+
+    - name: Run frontend (result) container
+      docker_image:
+        name: vijayakurra/result-app:latest
+        source: pull
+
+    - name: Run result container
+      docker_container:
+        name: result
+        image: vijayakurra/result-app:latest
+        networks:
+          - name: frontend_network
+        ports:
+          - "5001:80"
+        env:
+          DB_HOST: "{{ hostvars['db-instance'].ansible_host }}"       # PostgreSQL DB host
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          PG_HOST: "{{ hostvars['db-instance'].ansible_host }}"
+          PG_PORT: "5432"
+          PG_USER: "postgres"
+          PG_PASSWORD: "postgres"
+          PG_DATABASE: "postgres"
+        state: started
+        restart_policy: always
+        recreate: yes
+
+# =======================
+# BACKEND PLAYBOOK
+# =======================
+- name: Setup backend (worker + Redis)
+  hosts: backend
+  become: yes
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull worker image
+      docker_image:
+        name: vijayakurra/worker-app:latest
+        source: pull
+
+    - name: Pull Redis image
+      docker_image:
+        name: redis:alpine
+        source: pull
+
+    - name: Create backend network
+      docker_network:
+        name: backend_network
+        state: present
+
+    - name: Create DB network
+      docker_network:
+        name: db_network
+        state: present
+
+    - name: Run worker container
+      docker_container:
+        name: worker-container
+        image: vijayakurra/worker-app:latest
+        networks:
+          - name: backend_network
+        env:
+          REDIS_HOST: "redis-container"  # container name works since both share backend_network
+          REDIS_PORT: "6379"
+          DB_HOST: "{{ hostvars['db-instance'].ansible_host }}"       # PostgreSQL DB host
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+        state: started
+        restart_policy: always
+        platform: linux/amd64
+
+    - name: Run Redis container
+      docker_container:
+        name: redis-container
+        image: redis:alpine
+        networks:
+          - name: backend_network
+        ports:
+          - "6379:6379"
+        state: started
+        restart_policy: always
+        platform: linux/amd64
+
+# =======================
+# DATABASE PLAYBOOK
+# =======================
+- name: Setup PostgreSQL container
+  hosts: db
+  become: yes
+  tasks:
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull PostgreSQL image
+      docker_image:
+        name: postgres:15-alpine
+        source: pull
+
+    - name: Create DB network
+      docker_network:
+        name: db_network
+        state: present
+
+    - name: Run PostgreSQL container
+      docker_container:
+        name: postgresql_container
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: "postgres"
+          POSTGRES_PASSWORD: "postgres"
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        networks:
+          - name: db_network
+        ports:
+          - "5432:5432"
+        state: started
+        restart_policy: always
+        platform: linux/amd64
+>>>>>>> aa251f6955d188ab56b4341b829a56fa95c2b66d
