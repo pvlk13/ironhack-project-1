@@ -3,7 +3,7 @@
 
 services:
   vote:
-    image: pokfinner/vote:latest
+    image: vijayakurra/poll-app:latest
  #  build: ./vote
     depends_on:
       redis:
@@ -14,7 +14,7 @@ services:
       - back-tier
 
   result:
-    image: pokfinner/result:latest
+    image: vijayakurra/result-app:latest
  #  build: ./result
     depends_on:
       db:

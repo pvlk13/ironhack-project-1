@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vijaya-ingress-vote
+  namespace: vijaya-micro-kube
+  annotations:
+    kubernetes.io/ingress.class: traefik-vijaya
+    traefik.ingress.kubernetes.io/websocket: "true"
+spec:
+  rules:
+    - host: app.vijaya.vote.diogohack.shop
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vijaya-vote-service
+                port:
+                  number: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vijaya-ingress-result
+  namespace: vijaya-micro-kube
+  annotations:
+    kubernetes.io/ingress.class: traefik-vijaya
+    traefik.ingress.kubernetes.io/websocket: "true"
+spec:
+  rules:
+    - host: app.vijaya.result.diogohack.shop
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vijaya-result-service
+                port:
+                  number: 80

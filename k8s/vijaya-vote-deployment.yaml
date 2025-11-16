@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: vijaya-vote-deployment
+spec:
+  replicas: 1
+  selector: 
+     matchLabels:
+       app: vote 
+  template:
+    metadata:
+      labels:
+        app: vote
+    spec:
+      containers:
+        - name: vijaya-vote-container
+          image: vijayakurra/poll-app:latest
+          env:
+          - name: REDIS_HOST
+            value: "vijaya-redis-service"
+          - name: REDIS_PORT
+            value: "6379"  
+          ports:
+          - containerPort: 80
+

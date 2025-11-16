@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata: 
+  name: vijaya-result-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: result 
+  template:
+    metadata:
+      labels:
+        app: result
+    spec:
+      containers:
+      - name: vijaya-result-container
+        image: vijayakurra/result-app
+        ports:
+          - containerPort: 80
+        env:
+        - name:  DB_HOST
+          value: "vijaya-postgres-service"
+        - name:  DB_USER
+          value: "postgres"
+        - name:  DB_PASSWORD
+          value: "postgres"
+        - name:  PG_HOST
+          value: "vijaya-postgres-service"
+        - name:  "PG_PORT"
+          value: "5432"   
+        - name:  "PG_USER"
+          value: "postgres"
+        - name:  "PG_PASSWORD"
+          value: "postgres"
+        - name:  "PG_DATABASE"
+          value: "postgres"          
