@@ -19,11 +19,18 @@ jobs:
       steps:
          - name: checkout
            uses: actions/checkout@v4
+         - name: pull Image
+           uses: docker pull postgres:15-alpine  
+         - name: Log in to Docker Hub
+           run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-std
+         - name: push to docker hub redis repo   
+           run:  docker push vijayakurra/redis-workflow-kube:latest  
          - name: build Image
            run: |
               docker buildx build --platform linux/amd64 -t vijayakurra/vote-workflow-kube:latest ./vote/ 
               docker buildx build --platform linux/amd64 -t vijayakurra/result-workflow-kube:latest ./result/
-              docker buildx build --platform linux/amd64 -t vijayakurra/worker-workflow-kube:latest ./worker/                         
+              docker buildx build --platform linux/amd64 -t vijayakurra/worker-workflow-kube:latest ./worker/
+
          - name: Log in to Docker Hub
            run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
          - name: Push image
@@ -32,6 +39,7 @@ jobs:
               docker push vijayakurra/result-workflow-kube:latest
               docker push vijayakurra/worker-workflow-kube:latest
               docker push redis:alphine vijayakurra/redis-workflow-kube:latest
+              
               
               
            
