@@ -1,0 +1,29 @@
+name: CI/CD to EKS (Docker Hub + buildx)
+on: 
+  push:
+   branches: ["vijaya"]
+  workflow_dispatch:
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
+  DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
+  STUDENT_NAME: ${{ secrets.STUDENT_NAME }}
+  INGRESS_HOST: ${{ secrets.INGRESS_HOST }}
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}  
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+jobs:
+  build-and-push:
+      name: Build & Push Images (redis,postgres,worker,vote,result)
+      runs-on: ubuntu-latest
+      steps:
+         - name: checkout
+           uses: actions/checkout@v4
+         - name: build Image
+           run: docker build ./vote/ -t vijayakurra/vote-workflow-kube:latest
+         
+         - name: push image to docker hub 
+           run: | 
+            docker login -u ${{ DOCKERHUB_USERNAME }} -p ${{ DOCKERHUB_TOKEN }}  
+            docker push vijayakurra/vote-workflow-kube:latest
+
