@@ -24,6 +24,6 @@ jobs:
          
          - name: push image to docker hub 
            run: | 
-            docker login -u ${{ DOCKERHUB_USERNAME }} -p ${{ DOCKERHUB_TOKEN }}  
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}  
             docker push vijayakurra/vote-workflow-kube:latest
 
