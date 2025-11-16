@@ -20,7 +20,7 @@ jobs:
          - name: checkout
            uses: actions/checkout@v4
          - name: pull Image
-           uses: docker pull postgres:15-alpine  
+           run: docker pull redis:alpine
          - name: Log in to Docker Hub
            run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-std
          - name: push to docker hub redis repo   
