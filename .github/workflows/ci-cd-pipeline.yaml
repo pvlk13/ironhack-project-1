@@ -1,8 +1,10 @@
-name: CI/CD to EKS (Docker Hub + buildx)
+name: CI/CD to EKS (Docker Hub + Buildx)
+
 on: 
   push:
-   branches: ["vijaya"]
+    branches: ["vijaya"]
   workflow_dispatch:
+
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
@@ -10,38 +12,50 @@ env:
   DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
   STUDENT_NAME: ${{ secrets.STUDENT_NAME }}
   INGRESS_HOST: ${{ secrets.INGRESS_HOST }}
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}  
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
 jobs:
   build-and-push:
-      name: Build & Push Images (redis,postgres,worker,vote,result)
-      runs-on: ubuntu-latest
-      steps:
-         - name: checkout
-           uses: actions/checkout@v4
-         - name: pull Image
-           run: docker pull redis:alpine
-         - name: Log in to Docker Hub
-           run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-         - name: Tag redis image for push
-           run: docker tag redis:alpine vijayakurra/redis-workflow-kube:latest
-         - name: Push redis image to Docker Hub
-           run: docker push vijayakurra/redis-workflow-kube:latest
-         - name: build Image
-           run: |
-              docker buildx build --platform linux/amd64 -t vijayakurra/vote-workflow-kube:latest ./vote/ 
-              docker buildx build --platform linux/amd64 -t vijayakurra/result-workflow-kube:latest ./result/
-              docker buildx build --platform linux/amd64 -t vijayakurra/worker-workflow-kube:latest ./worker/
+    name: Build & Push Images (redis, postgres, worker, vote, result)
+    runs-on: ubuntu-latest
 
-         - name: Log in to Docker Hub
-           run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-         - name: Push image
-           run: |
-              docker push vijayakurra/vote-workflow-kube:latest
-              docker push vijayakurra/result-workflow-kube:latest
-              docker push vijayakurra/worker-workflow-kube:latest
-              docker push redis:alphine vijayakurra/redis-workflow-kube:latest
-              
-              
-              
-           
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Setup buildx for amd64 ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- Login once (avoid redundancy) ---
+      - name: Log in to Docker Hub
+        run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      # --- Pull official redis + postgres images ---
+      - name: Pull Redis & Postgres images
+        run: |
+          docker pull redis:alpine
+          docker pull postgres:15-alpine
+
+      # --- Retag redis + postgres to your namespace ---
+      - name: Retag official images
+        run: |
+          docker tag redis:alpine $DOCKERHUB_USERNAME/redis-workflow-kube:latest
+          docker tag postgres:15-alpine $DOCKERHUB_USERNAME/postgres-workflow-kube:15-alpine
+
+      # --- Build your custom images ---
+      - name: Build custom images (amd64)
+        run: |
+          docker buildx build --platform linux/amd64 -t $DOCKERHUB_USERNAME/vote-workflow-kube:latest ./vote --load
+          docker buildx build --platform linux/amd64 -t $DOCKERHUB_USERNAME/result-workflow-kube:latest ./result --load
+          docker buildx build --platform linux/amd64 -t $DOCKERHUB_USERNAME/worker-workflow-kube:latest ./worker --load
+
+      # --- Push everything ---
+      - name: Push all images to Docker Hub
+        run: |
+          docker push $DOCKERHUB_USERNAME/redis-workflow-kube:latest
+          docker push $DOCKERHUB_USERNAME/postgres-workflow-kube:15-alpine
+          docker push $DOCKERHUB_USERNAME/vote-workflow-kube:latest
+          docker push $DOCKERHUB_USERNAME/result-workflow-kube:latest
+          docker push $DOCKERHUB_USERNAME/worker-workflow-kube:latest
