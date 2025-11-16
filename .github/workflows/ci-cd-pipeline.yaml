@@ -22,7 +22,7 @@ jobs:
          - name: pull Image
            run: docker pull redis:alpine
          - name: Log in to Docker Hub
-           run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-std
+           run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
          - name: push to docker hub redis repo   
            run:  docker push vijayakurra/redis-workflow-kube:latest  
          - name: build Image
