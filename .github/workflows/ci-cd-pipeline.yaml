@@ -20,9 +20,18 @@ jobs:
          - name: checkout
            uses: actions/checkout@v4
          - name: build Image
-           run:  docker buildx build --platform linux/amd64 -t vijayakurra/vote-workflow-kube:latest ./vote/
+           run: |
+              docker buildx build --platform linux/amd64 -t vijayakurra/vote-workflow-kube:latest ./vote/ 
+              docker buildx build --platform linux/amd64 -t vijayakurra/result-workflow-kube:latest ./result/
+              docker buildx build --platform linux/amd64 -t vijayakurra/worker-workflow-kube:latest ./worker/                         
          - name: Log in to Docker Hub
            run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
          - name: Push image
-           run: docker push vijayakurra/vote-workflow-kube:latest
-
+           run: |
+              docker push vijayakurra/vote-workflow-kube:latest
+              docker push vijayakurra/result-workflow-kube:latest
+              docker push vijayakurra/worker-workflow-kube:latest
+              docker push redis:alphine vijayakurra/redis-workflow-kube:latest
+              
+              
+           
