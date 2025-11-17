@@ -74,7 +74,11 @@ jobs:
       - name: Ensure namespace exists
         run: |
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
-
+      # --- Apply StorageClass & PVC ---
+      - name: Apply Storage + PVC
+        run: |
+          kubectl apply -f k8s/vijaya-sc.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-pvc.yaml
       # --- Compute image tags in deploy job ---
       - name: Compute image tags
         id: tag
@@ -96,11 +100,11 @@ jobs:
 
       - name: Apply deployments if missing
         run: |
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/redis-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/postgres-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vote-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/result-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/worker-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-redis-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-vote-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-result-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-deployment.yaml
 
       - name: Set images to new tags
         run: |
