@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
           - name: redis
-            image: redis-workflow-kube
+            image: redis-workflow-kube:latest
             ports:
                - containerPort: 6379

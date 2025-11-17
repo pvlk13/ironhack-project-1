@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: result
-        image: result-workflow-kube
+        image: result-workflow-kube:af19447
         ports:
           - containerPort: 80
         env:
