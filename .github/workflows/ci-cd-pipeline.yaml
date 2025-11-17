@@ -11,28 +11,23 @@ env:
   K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
   DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
   STUDENT_NAME: ${{ secrets.STUDENT_NAME }}
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    outputs:                               # <-- job outputs go here, aligned with job
-      redis_image: ${{ steps.tag.outputs.redis_image }}
-      postgres_image: ${{ steps.tag.outputs.postgres_image }}
-      vote_image: ${{ steps.tag.outputs.vote_image }}
-      result_image: ${{ steps.tag.outputs.result_image }}
-      worker_image: ${{ steps.tag.outputs.worker_image }}
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       # --- Pull official images ---
       - name: Pull official Redis & Postgres images
@@ -40,66 +35,30 @@ jobs:
           docker pull redis:alpine
           docker pull postgres:15-alpine
 
-      # --- Tag official images with your Docker org ---
-      - name: Tag Redis & Postgres images
+      # --- Tag & Push official images ---
+      - name: Tag & Push Redis/Postgres
         run: |
-          echo "Docker Org: $DOCKER_ORG"
           docker tag redis:alpine $DOCKER_ORG/redis-workflow-kube:latest
           docker tag postgres:15-alpine $DOCKER_ORG/postgres-workflow-kube:15-alpine
-
-      # --- Push official images ---
-      - name: Push Redis & Postgres
-        run: |
           docker push $DOCKER_ORG/redis-workflow-kube:latest
           docker push $DOCKER_ORG/postgres-workflow-kube:15-alpine
 
-      # --- Build custom images ---
-      - name: Build custom images (vote, result, worker)
+      # --- Build & Push custom images ---
+      - name: Build & Push Vote/Result/Worker
         run: |
           SHA_TAG=${GITHUB_SHA::7}
-          docker buildx build --platform linux/amd64 -t $DOCKER_ORG/vote-workflow-kube:${SHA_TAG} ./vote --load
-          docker buildx build --platform linux/amd64 -t $DOCKER_ORG/result-workflow-kube:${SHA_TAG} ./result --load
-          docker buildx build --platform linux/amd64 -t $DOCKER_ORG/worker-workflow-kube:${SHA_TAG} ./worker --load
-
-      # --- Push custom images ---
-      - name: Push custom images
-        run: |
-          SHA_TAG=${GITHUB_SHA::7}
-          docker push $DOCKER_ORG/vote-workflow-kube:${SHA_TAG}
-          docker push $DOCKER_ORG/result-workflow-kube:${SHA_TAG}
-          docker push $DOCKER_ORG/worker-workflow-kube:${SHA_TAG}
-
-      # --- Compute image tags for deployment ---
-      - name: Compute image tags
-        id: tag
-        run: |
-           SHA_TAG=${GITHUB_SHA::7}
-           echo "sha_tag=$SHA_TAG" >> $GITHUB_OUTPUT
-           # Official images use fixed tags
-           echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:latest" >> $GITHUB_OUTPUT
-           echo "postgres_image=${DOCKER_ORG}/postgres-workflow-kube:15-alpine" >> $GITHUB_OUTPUT
-           # Custom images use SHA
-           echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-           echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-           echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-      
-      # --- Debugging ----    
-      - name: DEBUG – Print the generated images
-        run: |
-          echo "DOCKER_ORG: $DOCKER_ORG"
-          echo "Redis image:      ${{ steps.tag.outputs.redis_image }}"
-          echo "Postgres image:   ${{ steps.tag.outputs.postgres_image }}"
-          echo "Worker image:     ${{ steps.tag.outputs.worker_image }}"
-          echo "Vote image:       ${{ steps.tag.outputs.vote_image }}"
-          echo "Result image:     ${{ steps.tag.outputs.result_image }}"
-
+          for APP in vote result worker; do
+            docker buildx build --platform linux/amd64 \
+              -t $DOCKER_ORG/${APP}-workflow-kube:${SHA_TAG} ./$APP --load
+            docker push $DOCKER_ORG/${APP}-workflow-kube:${SHA_TAG}
+          done
 
   deploy:
     name: Deploy to EKS
     runs-on: ubuntu-latest
     needs: [build-and-push]
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -109,114 +68,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Update Kubeconfig for EKS
+      - name: Update kubeconfig
         run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
       - name: Ensure namespace exists
         run: |
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
 
-      - name: Install Traefik Ingress (if missing)
+      # --- Compute image tags in deploy job ---
+      - name: Compute image tags
+        id: tag
         run: |
-          if ! kubectl get deployment -n kube-system traefik > /dev/null 2>&1; then
-            echo "Traefik not found. Installing via Helm..."
-            helm repo add traefik https://helm.traefik.io/traefik
-            helm repo update
-            helm install traefik traefik/traefik --namespace kube-system --create-namespace
-            kubectl -n kube-system rollout status deployment/traefik --timeout=300s
-          else
-           echo "Traefik already installed."
-          fi
+          SHA_TAG=${GITHUB_SHA::7}
+          echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:latest" >> $GITHUB_OUTPUT
+          echo "postgres_image=${DOCKER_ORG}/postgres-workflow-kube:15-alpine" >> $GITHUB_OUTPUT
+          echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
 
-
-
-      # --- Apply storage + PVC ---
-      - name: Apply Storage + PVC
+      - name: Debug – Print computed images
         run: |
-          kubectl apply -f k8s/vijaya-sc.yaml
-          kubectl apply -f k8s/vijaya-pvc.yaml
+          echo "Redis: ${{ steps.tag.outputs.redis_image }}"
+          echo "Postgres: ${{ steps.tag.outputs.postgres_image }}"
+          echo "Vote: ${{ steps.tag.outputs.vote_image }}"
+          echo "Result: ${{ steps.tag.outputs.result_image }}"
+          echo "Worker: ${{ steps.tag.outputs.worker_image }}"
 
-      # --- Apply services ---
-      - name: Apply Services
+      - name: Apply deployments if missing
         run: |
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-redis-service.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-service.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-vote-services.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-result-services.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-service.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/redis-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/postgres-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vote-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/result-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/worker-deployment.yaml
 
-      # --- Apply deployments ---
-      - name: Apply Deployments
-        run: |
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-redis-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-vote-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-result-deployment.yaml
-          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-deployment.yaml
-
-      # --- Patch deployments with SHA/latest images ---
-      - name: Check image variables
-        run: |
-         echo "Redis image: ${{ steps.tag.outputs.redis_image }}"
-         echo "Postgres image: ${{ steps.tag.outputs.postgres_image }}"
-         echo "worker image: ${{ steps.tag.outputs.worker_image }}"
-         echo "vote image: ${{ steps.tag.outputs.vote_image }}"
-         echo "result image: ${{ steps.tag.outputs.result_image }}"
-         
       - name: Set images to new tags
         run: |
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment redis="${{ needs.build-and-push.outputs.redis_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ needs.build-and-push.outputs.postgres_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment vote="${{ needs.build-and-push.outputs.vote_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment result="${{ needs.build-and-push.outputs.result_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment worker="${{ needs.build-and-push.outputs.worker_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment redis="${{ steps.tag.outputs.redis_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ steps.tag.outputs.postgres_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment vote="${{ steps.tag.outputs.vote_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment result="${{ steps.tag.outputs.result_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment worker="${{ steps.tag.outputs.worker_image }}"
 
-      # --- Patch ingress hosts ---
-      - name: Patch Vote Ingress
+      - name: Wait for rollout
         run: |
-          kubectl patch ingress vijaya-ingress-vote \
-            -n $K8S_NAMESPACE \
-            -p "{\"spec\":{\"rules\":[{\"host\":\"${{ secrets.INGRESS_HOST_VOTE }}\"}]}}"
-
-      - name: Patch Result Ingress
-        run: |
-          kubectl patch ingress vijaya-ingress-result \
-            -n $K8S_NAMESPACE \
-            -p "{\"spec\":{\"rules\":[{\"host\":\"${{ secrets.INGRESS_HOST_RESULT }}\"}]}}"
-
-      # --- Wait for rollout to finish ---
-      - name: Wait for all deployments
-        run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-redis-deployment --timeout=300s
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-postgres-deployment --timeout=300s
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-vote-deployment --timeout=300s
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-result-deployment --timeout=300s
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-worker-deployment --timeout=300s
-
-      - name: Quick smoke test via Ingress
-        run: |
-          curl -s --fail "http://${{ secrets.INGRESS_HOST_VOTE }}/ping" | tee /tmp/vote.txt
-          curl -s --fail "http://${{ secrets.INGRESS_HOST_RESULT }}/ping" | tee /tmp/result.txt
-      # --- Wait for rollout with rollback ---
-      - name: Wait for all deployments (with rollback on failure)
-        run: |
-         set -e
-
-         rollback() {
-           echo "⚠ Deployment failed. Rolling back..."
-           kubectl -n "$K8S_NAMESPACE" rollout undo deployment/vijaya-redis-deployment || true
-           kubectl -n "$K8S_NAMESPACE" rollout undo deployment/vijaya-postgres-deployment || true
-           kubectl -n "$K8S_NAMESPACE" rollout undo deployment/vijaya-vote-deployment || true
-           kubectl -n "$K8S_NAMESPACE" rollout undo deployment/vijaya-result-deployment || true
-           kubectl -n "$K8S_NAMESPACE" rollout undo deployment/vijaya-worker-deployment || true
-          exit 1
-         }
-
-         trap 'rollback' ERR
-
-         kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-redis-deployment --timeout=300s
-         kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-postgres-deployment --timeout=300s
-         kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-vote-deployment --timeout=300s
-         kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-result-deployment --timeout=300s
-         kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-worker-deployment --timeout=300s
-    
+          for DEPLOY in redis postgres vote result worker; do
+            kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-${DEPLOY}-deployment --timeout=300s
+          done
