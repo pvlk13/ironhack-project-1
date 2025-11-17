@@ -80,7 +80,7 @@ jobs:
            aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
       - name: Verify access
         run: |
-          kubectl version --short 
+          kubectl version 
           kubectl get ns
           kubectl get ingress -A || true          
       - name: Create namespace if missing
