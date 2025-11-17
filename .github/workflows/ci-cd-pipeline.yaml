@@ -74,6 +74,13 @@ jobs:
       - name: Ensure namespace exists
         run: |
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
+
+      #INSTALL TRAEFIK INGRESS CONTROLLER
+      - name: Install Traefik Ingress Controller
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/reference/dynamic-configuration/kubernetes-crd.yml
+          kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/user-guides/crd-acme/traefik-ingress-controller.yaml
+
       # --- Apply StorageClass & PVC ---
       - name: Apply Storage + PVC
         run: |
@@ -105,6 +112,10 @@ jobs:
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-vote-deployment.yaml
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-result-deployment.yaml
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-deployment.yaml
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-ingresses.yaml
+      - name: Apply Postgres StatefulSet
+        run: |
+          kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-statefulset.yaml    
 
       - name: Set images to new tags
         run: |
@@ -119,3 +130,13 @@ jobs:
           for DEPLOY in redis postgres vote result worker; do
             kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-${DEPLOY}-deployment --timeout=300s
           done
+      - name: Quick smoke test via Ingress
+        run: |
+          echo "Testing Vote app..."
+          curl -s --fail "http://app.vijaya.vote.diogohack.shop/ping" | tee /tmp/vote.txt
+          echo "Vote app response above."
+
+          echo "Testing Result app..."
+          curl -s --fail "http://app.vijaya.result.diogohack.shop/ping" | tee /tmp/result.txt
+          echo "Result app response above."
+  
