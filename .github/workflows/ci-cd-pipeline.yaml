@@ -131,6 +131,33 @@ jobs:
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment vote="${{ steps.tag.outputs.vote_image }}"
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment result="${{ steps.tag.outputs.result_image }}"
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment worker="${{ steps.tag.outputs.worker_image }}"
+          # Patch Vote Ingress Host
+      - name: Patch Vote Ingress Host
+        shell: bash
+        run: |
+          CURRENT_HOST=$(kubectl -n "$K8S_NAMESPACE" get ingress vijaya-ingress-vote -o jsonpath='{.spec.rules[0].host}')
+          if [ "$CURRENT_HOST" != "${{ secrets.INGRESS_HOST_VOTE }}" ]; then
+          echo "Patching vote ingress host to ${{ secrets.INGRESS_HOST_VOTE }}"
+          kubectl -n "$K8S_NAMESPACE" patch ingress vijaya-ingress-vote \
+            --type='json' \
+            -p="[ {\"op\": \"replace\", \"path\": \"/spec/rules/0/host\", \"value\": \"${{ secrets.INGRESS_HOST_VOTE }}\" } ]"
+          else
+            echo "Vote ingress already correct"
+          fi
+
+    # Patch Result Ingress Host
+      - name: Patch Result Ingress Host
+        shell: bash
+        run: |
+          CURRENT_HOST=$(kubectl -n "$K8S_NAMESPACE" get ingress vijaya-ingress-result -o jsonpath='{.spec.rules[0].host}')
+          if [ "$CURRENT_HOST" != "${{ secrets.INGRESS_HOST_RESULT }}" ]; then
+          echo "Patching result ingress host to ${{ secrets.INGRESS_HOST_RESULT }}"
+          kubectl -n "$K8S_NAMESPACE" patch ingress vijaya-ingress-result \
+            --type='json' \
+            -p="[ {\"op\": \"replace\", \"path\": \"/spec/rules/0/host\", \"value\": \"${{ secrets.INGRESS_HOST_RESULT }}\" } ]"
+          else
+           echo "Result ingress already correct"
+          fi
 
       - name: Wait for rollout
         run: |
