@@ -76,10 +76,17 @@ jobs:
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
 
       #INSTALL TRAEFIK INGRESS CONTROLLER
-      - name: Install Traefik Ingress Controller
+      - name: Install Helm
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/reference/dynamic-configuration/kubernetes-crd.yml
-          kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/user-guides/crd-acme/traefik-ingress-controller.yaml
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+      - name: Install Traefik Ingress Controller (via Helm)
+        run: |
+          helm repo add traefik https://traefik.github.io/charts
+          helm repo update
+          helm upgrade --install traefik traefik/traefik \
+          --namespace kube-system \
+          --create-namespace
 
       # --- Apply StorageClass & PVC ---
       - name: Apply Storage + PVC
