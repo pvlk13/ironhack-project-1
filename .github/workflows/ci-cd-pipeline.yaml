@@ -18,7 +18,7 @@ jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    outputs:
+    outputs:                               # <-- job outputs go here, aligned with job
       redis_image: ${{ steps.tag.outputs.redis_image }}
       postgres_image: ${{ steps.tag.outputs.postgres_image }}
       vote_image: ${{ steps.tag.outputs.vote_image }}
@@ -73,15 +73,16 @@ jobs:
       - name: Compute image tags
         id: tag
         run: |
-          SHA_TAG=${GITHUB_SHA::7}
-          echo "sha_tag=$SHA_TAG" >> $GITHUB_OUTPUT
-          # Official images use fixed tags
-          echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:latest" >> $GITHUB_OUTPUT
-          echo "postgres_image=${DOCKER_ORG}/postgres-workflow-kube:15-alpine" >> $GITHUB_OUTPUT
-          # Custom images use SHA
-          echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+           SHA_TAG=${GITHUB_SHA::7}
+           echo "sha_tag=$SHA_TAG" >> $GITHUB_OUTPUT
+           # Official images use fixed tags
+           echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:latest" >> $GITHUB_OUTPUT
+           echo "postgres_image=${DOCKER_ORG}/postgres-workflow-kube:15-alpine" >> $GITHUB_OUTPUT
+           # Custom images use SHA
+           echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+           echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+           echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+      
       # --- Debugging ----    
       - name: DEBUG – Print the generated images
         run: |
@@ -164,11 +165,11 @@ jobs:
          
       - name: Set images to new tags
         run: |
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment redis="${{ steps.tag.outputs.redis_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ steps.tag.outputs.postgres_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment vote="${{ steps.tag.outputs.vote_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment result="${{ steps.tag.outputs.result_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment worker="${{ steps.tag.outputs.worker_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment redis="${{ needs.build-and-push.outputs.redis_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ needs.build-and-push.outputs.postgres_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment vote="${{ needs.build-and-push.outputs.vote_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment result="${{ needs.build-and-push.outputs.result_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment worker="${{ needs.build-and-push.outputs.worker_image }}"
 
       # --- Patch ingress hosts ---
       - name: Patch Vote Ingress
