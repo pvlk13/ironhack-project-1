@@ -79,6 +79,7 @@ jobs:
       # --- Debugging ----    
       - name: DEBUG – Print the generated images
         run: |
+          echo "DOCKER_ORG: $DOCKER_ORG"
           echo "redis_image=${{ steps.tag.outputs.redis_image }}"
           echo "postgres_image=${{ steps.tag.outputs.postgres_image }}"
           echo "worker_image=${{ steps.tag.outputs.worker_image }}"
