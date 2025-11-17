@@ -100,16 +100,19 @@ jobs:
         run: |
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
 
-      # --- Install Traefik Ingress if missing ---
       - name: Install Traefik Ingress (if missing)
         run: |
           if ! kubectl get deployment -n kube-system traefik > /dev/null 2>&1; then
-            echo "Traefik not found. Installing..."
-            kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10.4/examples/k8s/traefik.yaml
+            echo "Traefik not found. Installing via Helm..."
+            helm repo add traefik https://helm.traefik.io/traefik
+            helm repo update
+            helm install traefik traefik/traefik --namespace kube-system --create-namespace
             kubectl -n kube-system rollout status deployment/traefik --timeout=300s
           else
-            echo "Traefik already installed."
+           echo "Traefik already installed."
           fi
+
+
 
       # --- Apply storage + PVC ---
       - name: Apply Storage + PVC
