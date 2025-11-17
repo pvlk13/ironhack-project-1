@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: vote
-          image: vijayakurra/poll-app:latest
+          image: vote-workflow-kube
           env:
           - name: REDIS_HOST
             value: "vijaya-redis-service"

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: result
-        image: vijayakurra/result-app
+        image: result-workflow-kube
         ports:
           - containerPort: 80
         env:
