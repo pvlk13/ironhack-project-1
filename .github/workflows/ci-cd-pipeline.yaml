@@ -88,7 +88,7 @@ jobs:
           kubectl get ns "$K8S_NAMESPACE" || kubectl create ns "$K8S_NAMESPACE"
       - name: Apply base k8s (safe re-apply)
         run: |
-          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/vijaya-namespace.yaml
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-redis-service.yaml
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-service.yaml
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-ingresses.yaml 
