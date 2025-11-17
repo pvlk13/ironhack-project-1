@@ -28,41 +28,55 @@ jobs:
       - name: Log in to Docker Hub
         run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
+      # --- Pull official images ---
       - name: Pull official Redis & Postgres images
         run: |
           docker pull redis:alpine
           docker pull postgres:15-alpine
 
+      # --- Tag official images with your Docker org ---
       - name: Tag Redis & Postgres images
         run: |
+          echo "Docker Org: $DOCKER_ORG"
           docker tag redis:alpine $DOCKER_ORG/redis-workflow-kube:latest
           docker tag postgres:15-alpine $DOCKER_ORG/postgres-workflow-kube:15-alpine
 
-      - name: Build custom images
+      # --- Push official images ---
+      - name: Push Redis & Postgres
+        run: |
+          docker push $DOCKER_ORG/redis-workflow-kube:latest
+          docker push $DOCKER_ORG/postgres-workflow-kube:15-alpine
+
+      # --- Build custom images ---
+      - name: Build custom images (vote, result, worker)
         run: |
           SHA_TAG=${GITHUB_SHA::7}
           docker buildx build --platform linux/amd64 -t $DOCKER_ORG/vote-workflow-kube:${SHA_TAG} ./vote --load
           docker buildx build --platform linux/amd64 -t $DOCKER_ORG/result-workflow-kube:${SHA_TAG} ./result --load
           docker buildx build --platform linux/amd64 -t $DOCKER_ORG/worker-workflow-kube:${SHA_TAG} ./worker --load
 
-      - name: Push all images to Docker Hub
+      # --- Push custom images ---
+      - name: Push custom images
         run: |
-          docker push $DOCKER_ORG/redis-workflow-kube:latest
-          docker push $DOCKER_ORG/postgres-workflow-kube:15-alpine
+          SHA_TAG=${GITHUB_SHA::7}
           docker push $DOCKER_ORG/vote-workflow-kube:${SHA_TAG}
           docker push $DOCKER_ORG/result-workflow-kube:${SHA_TAG}
           docker push $DOCKER_ORG/worker-workflow-kube:${SHA_TAG}
 
+      # --- Compute image tags for deployment ---
       - name: Compute image tags
         id: tag
         run: |
           SHA_TAG=${GITHUB_SHA::7}
           echo "sha_tag=$SHA_TAG" >> $GITHUB_OUTPUT
+          # Official images use fixed tags
           echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:latest" >> $GITHUB_OUTPUT
           echo "postgres_image=${DOCKER_ORG}/postgres-workflow-kube:15-alpine" >> $GITHUB_OUTPUT
+          # Custom images use SHA
           echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
           echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
           echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+
 
   deploy:
     name: Deploy to EKS
