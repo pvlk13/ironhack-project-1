@@ -143,21 +143,21 @@ jobs:
 
       - name: Wait for rollout (backend)
         run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deploy/vijaya-vote --timeout=120s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-vote-deployment --timeout=120s
  
       - name: Wait for rollout (frontend)
         run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deploy/vijaya-result --timeout=120s 
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-result-deployment --timeout=120s 
       - name: Wait for rollout (backend)
         run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deploy/vijaya-worker --timeout=120s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-worker-deployment --timeout=120s
  
       - name: Wait for rollout (frontend)
         run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deploy/vijaya-redis --timeout=120s   
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-redis-deployment --timeout=120s   
       - name: Wait for rollout (backend)
         run: |
-          kubectl -n "$K8S_NAMESPACE" rollout status deploy/vijaya-postgres --timeout=120s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/vijaya-postgres-deployment --timeout=120s
       - name: Quick smoke test via Ingress
         run: |
           # You need DNS already pointing at the NGINX Ingress ELB (previous lab).
