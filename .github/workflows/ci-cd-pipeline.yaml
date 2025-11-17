@@ -80,11 +80,11 @@ jobs:
       - name: DEBUG – Print the generated images
         run: |
           echo "DOCKER_ORG: $DOCKER_ORG"
-          echo "redis_image=${{ steps.tag.outputs.redis_image }}"
-          echo "postgres_image=${{ steps.tag.outputs.postgres_image }}"
-          echo "worker_image=${{ steps.tag.outputs.worker_image }}"
-          echo "vote_image=${{ steps.tag.outputs.vote_image }}"
-          echo "result_image=${{ steps.tag.outputs.result_image }}"
+          echo "Redis image:      ${{ steps.tag.outputs.redis_image }}"
+          echo "Postgres image:   ${{ steps.tag.outputs.postgres_image }}"
+          echo "Worker image:     ${{ steps.tag.outputs.worker_image }}"
+          echo "Vote image:       ${{ steps.tag.outputs.vote_image }}"
+          echo "Result image:     ${{ steps.tag.outputs.result_image }}"
 
 
   deploy:
