@@ -18,6 +18,12 @@ jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+    outputs:
+      redis_image: ${{ steps.tag.outputs.redis_image }}
+      postgres_image: ${{ steps.tag.outputs.postgres_image }}
+      vote_image: ${{ steps.tag.outputs.vote_image }}
+      result_image: ${{ steps.tag.outputs.result_image }}
+      worker_image: ${{ steps.tag.outputs.worker_image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
