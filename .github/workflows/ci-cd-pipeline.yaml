@@ -115,11 +115,11 @@ jobs:
            kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-deployment.yaml 
       - name: Set images to new SHA tag
         run: |
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis  vijaya-redis="${{ steps.tag.outputs.redis_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker vijaya-worker="${{ steps.tag.outputs.worker_image }}" 
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result vijaya-result="${{ steps.tag.outputs.result_image }}"
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote   vijaya-vote="${{ steps.tag.outputs.vote_image }}" 
-          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres vijaya-postgres="${{ steps.tag.outputs.postgres_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment    redis="${{ steps.tag.outputs.redis_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-worker-deployment   worker="${{ steps.tag.outputs.worker_image }}" 
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment   result="${{ steps.tag.outputs.result_image }}"
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment     vote="${{ steps.tag.outputs.vote_image }}" 
+          kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ steps.tag.outputs.postgres_image }}"
       # Make sure the ingress host matches your Route 53 record (idempotent patch)
       - name: Patch Ingress host if needed
         shell: bash
