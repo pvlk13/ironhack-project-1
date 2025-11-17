@@ -13,7 +13,7 @@ spec:
         app: result
     spec:
       containers:
-      - name: vijaya-result-container
+      - name: result
         image: vijayakurra/result-app
         ports:
           - containerPort: 80

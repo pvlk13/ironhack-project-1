@@ -120,6 +120,14 @@ jobs:
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-result-deployment   result="${{ steps.tag.outputs.result_image }}"
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-vote-deployment     vote="${{ steps.tag.outputs.vote_image }}" 
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-postgres-deployment postgres="${{ steps.tag.outputs.postgres_image }}"
+
+      - name: Apply Storage + PVC + Deployments + Services
+        run: |
+          kubectl apply -f k8s/vijaya-sc.yaml
+          kubectl apply -f k8s/vijaya-pvc.yaml
+          kubectl apply -f k8s/vijaya-postgres-deployment.yaml
+          kubectl apply -f k8s/vijaya-postgres-service.yaml
+
       # Make sure the ingress host matches your Route 53 record (idempotent patch)
       - name: Patch Ingress host if needed
         shell: bash

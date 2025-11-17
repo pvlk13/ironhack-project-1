@@ -13,7 +13,7 @@ spec:
         app: vote
     spec:
       containers:
-        - name: vijaya-vote-container
+        - name: vote
           image: vijayakurra/poll-app:latest
           env:
           - name: REDIS_HOST

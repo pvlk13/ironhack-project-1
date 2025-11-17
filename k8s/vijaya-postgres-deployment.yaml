@@ -13,7 +13,7 @@ spec:
         app: postgres
     spec:
       containers:
-        - name: postgres-container
+        - name: postgres
           image: postgres:15-alpine
           env:
             - name: POSTGRES_USER
