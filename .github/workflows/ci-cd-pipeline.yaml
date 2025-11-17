@@ -139,6 +139,14 @@ jobs:
           kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-worker-deployment.yaml
 
       # --- Patch deployments with SHA/latest images ---
+      - name: Check image variables
+        run: |
+         echo "Redis image: ${{ steps.tag.outputs.redis_image }}"
+         echo "Postgres image: ${{ steps.tag.outputs.postgres_image }}"
+         echo "worker image: ${{ steps.tag.outputs.worker_image }}"
+         echo "vote image: ${{ steps.tag.outputs.vote_image }}"
+         echo "result image: ${{ steps.tag.outputs.result_image }}"
+         
       - name: Set images to new tags
         run: |
           kubectl -n "$K8S_NAMESPACE" set image deployment/vijaya-redis-deployment redis="${{ steps.tag.outputs.redis_image }}"
