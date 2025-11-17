@@ -101,11 +101,11 @@ jobs:
         run: |
           SHA_TAG=${GITHUB_SHA::7}
           echo "sha_tag=$SHA_TAG" >> $GITHUB_OUTPUT
-          echo "redis_image=${DOCKER_ORG}/vijayakurra/redis-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "vote_image=${DOCKER_ORG}/vijayakurra/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "result_image=${DOCKER_ORG}/vijayakurra/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "worker_image=${DOCKER_ORG}/vijayakurra/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT       
-          echo "postgres_image=${DOCKER_ORG}/vijayakurra/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "redis_image=${DOCKER_ORG}/redis-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "vote_image=${DOCKER_ORG}/vote-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "result_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "worker_image=${DOCKER_ORG}/worker-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT       
+          echo "postgres_image=${DOCKER_ORG}/result-workflow-kube:${SHA_TAG}" >> $GITHUB_OUTPUT
       - name: Ensure Deployments exist
         run: |
            kubectl apply -n "$K8S_NAMESPACE" -f k8s/vijaya-postgres-deployment.yaml
