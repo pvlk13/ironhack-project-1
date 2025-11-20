@@ -1,0 +1,24 @@
+# gateway.yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: vijaya-gateway
+  namespace: vijaya-micro-kube
+spec:
+  gatewayClassName: traefik-vijaya   # must match the GatewayClass name
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: vijaya-tls-cert   # your TLS secret
+            group: ""
